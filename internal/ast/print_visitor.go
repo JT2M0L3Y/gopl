@@ -60,7 +60,7 @@ func (pv *PrintVisitor) VisitProgram(p *Program) error {
 
 func (pv *PrintVisitor) VisitFuncDef(f *FuncDef) error {
 	pv.printf("\n")
-	
+
 	// Print return type
 	if f.ReturnType.IsArray {
 		pv.printf("array %s ", f.ReturnType.TypeNames[0])
@@ -384,11 +384,12 @@ func (pv *PrintVisitor) VisitComplexTerm(t *ComplexTerm) error {
 }
 
 func (pv *PrintVisitor) VisitSimpleRValue(v *SimpleRValue) error {
-	if v.Value.Kind == token.StringVal {
+	switch v.Value.Kind {
+	case token.StringVal:
 		pv.printf("\"%s\"", v.Value.Lexeme)
-	} else if v.Value.Kind == token.CharVal {
+	case token.CharVal:
 		pv.printf("'%s'", v.Value.Lexeme)
-	} else {
+	default:
 		pv.printf("%s", v.Value.Lexeme)
 	}
 	return nil

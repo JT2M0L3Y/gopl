@@ -1,0 +1,33 @@
+# More comprehensive test program
+struct Person {
+  string name,
+  int age,
+  double height
+}
+
+int factorial(int n) {
+  if (n <= 1) {
+    return 1
+  }
+  else {
+    return n * factorial(n - 1)
+  }
+}
+
+void processData() {
+  int x = 10
+  int y = 20
+  int sum = x + y
+  
+  while (x < 100) {
+    x = x + 1
+  }
+  
+  for (int i = 0; i < 10; i = i + 1) {
+    int squared = i * i
+  }
+}
+
+string greet(string name) {
+  return name
+}
