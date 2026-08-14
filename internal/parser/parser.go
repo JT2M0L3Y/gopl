@@ -1,7 +1,8 @@
-package ast
+package parser
 
 import (
 	"fmt"
+	"gopl/internal/ast"
 	"gopl/internal/lexer"
 	"gopl/internal/token"
 )
@@ -20,8 +21,8 @@ func New(l *lexer.Lexer) *Parser {
 }
 
 // Parse parses a complete program
-func (p *Parser) Parse() (*Program, error) {
-	prog := &Program{}
+func (p *Parser) Parse() (*ast.Program, error) {
+	prog := &ast.Program{}
 
 	for !p.match(token.EOF) {
 		if p.match(token.Struct) {
@@ -100,12 +101,12 @@ func (p *Parser) baseRValue() bool {
 
 // Parsing functions for top-level constructs
 
-func (p *Parser) structDef(prog *Program) error {
+func (p *Parser) structDef(prog *ast.Program) error {
 	if err := p.eat(token.Struct, "expecting 'struct'"); err != nil {
 		return err
 	}
 
-	s := StructDef{
+	s := ast.StructDef{
 		StructName: p.currToken,
 	}
 
@@ -129,9 +130,9 @@ func (p *Parser) structDef(prog *Program) error {
 	return nil
 }
 
-func (p *Parser) fields(s *StructDef) error {
+func (p *Parser) fields(s *ast.StructDef) error {
 	if p.baseType() || p.matchAny([]token.Kind{token.Ident, token.Array}) {
-		v := VarDef{}
+		v := ast.VarDef{}
 		if err := p.dataType(&v); err != nil {
 			return err
 		}
@@ -143,7 +144,7 @@ func (p *Parser) fields(s *StructDef) error {
 
 		for p.match(token.Comma) {
 			p.advance()
-			v := VarDef{}
+			v := ast.VarDef{}
 			if err := p.dataType(&v); err != nil {
 				return err
 			}
@@ -157,10 +158,10 @@ func (p *Parser) fields(s *StructDef) error {
 	return nil
 }
 
-func (p *Parser) funDef(prog *Program) error {
-	fun := FuncDef{}
+func (p *Parser) funDef(prog *ast.Program) error {
+	fun := ast.FuncDef{}
 
-	v := VarDef{}
+	v := ast.VarDef{}
 	if err := p.dataType(&v); err != nil {
 		return err
 	}
@@ -187,7 +188,7 @@ func (p *Parser) funDef(prog *Program) error {
 		return err
 	}
 
-	var stmts []Stmt
+	var stmts []ast.Stmt
 	if err := p.stmt(&stmts); err != nil {
 		return err
 	}
@@ -201,9 +202,9 @@ func (p *Parser) funDef(prog *Program) error {
 	return nil
 }
 
-func (p *Parser) params(f *FuncDef) error {
+func (p *Parser) params(f *ast.FuncDef) error {
 	for !p.match(token.RParen) {
-		v := VarDef{}
+		v := ast.VarDef{}
 		if err := p.dataType(&v); err != nil {
 			return err
 		}
@@ -225,7 +226,7 @@ func (p *Parser) params(f *FuncDef) error {
 	return nil
 }
 
-func (p *Parser) dataType(v *VarDef) error {
+func (p *Parser) dataType(v *ast.VarDef) error {
 	if p.match(token.VoidType) {
 		v.DataType.TypeNames = append(v.DataType.TypeNames, p.currToken.Lexeme)
 		p.advance()
@@ -263,34 +264,34 @@ func (p *Parser) dataType(v *VarDef) error {
 
 // Statement parsing
 
-func (p *Parser) stmt(stmts *[]Stmt) error {
+func (p *Parser) stmt(stmts *[]ast.Stmt) error {
 	for !p.match(token.RBrace) {
 		if p.match(token.If) {
-			iStmt := &IfStmt{}
+			iStmt := &ast.IfStmt{}
 			if err := p.ifStmt(iStmt); err != nil {
 				return err
 			}
 			*stmts = append(*stmts, iStmt)
 		} else if p.match(token.For) {
-			fStmt := &ForStmt{}
+			fStmt := &ast.ForStmt{}
 			if err := p.forStmt(fStmt); err != nil {
 				return err
 			}
 			*stmts = append(*stmts, fStmt)
 		} else if p.match(token.While) {
-			wStmt := &WhileStmt{}
+			wStmt := &ast.WhileStmt{}
 			if err := p.whileStmt(wStmt); err != nil {
 				return err
 			}
 			*stmts = append(*stmts, wStmt)
 		} else if p.match(token.Return) {
-			rStmt := &ReturnStmt{}
+			rStmt := &ast.ReturnStmt{}
 			if err := p.retStmt(rStmt); err != nil {
 				return err
 			}
 			*stmts = append(*stmts, rStmt)
 		} else if p.matchAny([]token.Kind{token.Array, token.Dict}) || p.baseType() {
-			vDecl := &VarDeclStmt{}
+			vDecl := &ast.VarDeclStmt{}
 			if err := p.dataType(&vDecl.VarDef); err != nil {
 				return err
 			}
@@ -303,8 +304,8 @@ func (p *Parser) stmt(stmts *[]Stmt) error {
 			p.advance()
 
 			if p.matchAny([]token.Kind{token.Assign, token.Dot}) {
-				aStmt := &AssignStmt{}
-				v := VarRef{VarName: idToken}
+				aStmt := &ast.AssignStmt{}
+				v := ast.VarRef{VarName: idToken}
 				aStmt.LValue = append(aStmt.LValue, v)
 				if err := p.assignStmt(aStmt, idToken); err != nil {
 					return err
@@ -312,12 +313,12 @@ func (p *Parser) stmt(stmts *[]Stmt) error {
 				*stmts = append(*stmts, aStmt)
 			} else if p.match(token.LBracket) {
 				p.advance()
-				aStmt := &AssignStmt{}
-				e := &Expr{}
+				aStmt := &ast.AssignStmt{}
+				e := &ast.Expr{}
 				if err := p.expr(e); err != nil {
 					return err
 				}
-				v := VarRef{VarName: idToken}
+				v := ast.VarRef{VarName: idToken}
 				if e.First != nil && e.First.FirstToken().Kind == token.StringVal {
 					v.DictExpr = e
 				} else {
@@ -332,14 +333,14 @@ func (p *Parser) stmt(stmts *[]Stmt) error {
 				}
 				*stmts = append(*stmts, aStmt)
 			} else if p.match(token.LParen) {
-				cExpr := &CallExpr{FunName: idToken}
+				cExpr := &ast.CallExpr{FunName: idToken}
 				if err := p.callExpr(cExpr); err != nil {
 					return err
 				}
 				*stmts = append(*stmts, cExpr)
 			} else {
 				// implicit variable declaration with type inferred from context
-				vDecl := &VarDeclStmt{}
+				vDecl := &ast.VarDeclStmt{}
 				vDecl.VarDef.VarName = idToken
 				vDecl.VarDef.DataType.TypeNames = append(vDecl.VarDef.DataType.TypeNames, idToken.Lexeme)
 				if err := p.vdeclStmt(vDecl); err != nil {
@@ -354,7 +355,7 @@ func (p *Parser) stmt(stmts *[]Stmt) error {
 	return nil
 }
 
-func (p *Parser) vdeclStmt(vDecl *VarDeclStmt) error {
+func (p *Parser) vdeclStmt(vDecl *ast.VarDeclStmt) error {
 	if !p.match(token.Assign) {
 		vDecl.VarDef.VarName = p.currToken
 		if err := p.eat(token.Ident, "expecting identifier"); err != nil {
@@ -364,7 +365,7 @@ func (p *Parser) vdeclStmt(vDecl *VarDeclStmt) error {
 	if err := p.eat(token.Assign, "expecting '='"); err != nil {
 		return err
 	}
-	e := &Expr{}
+	e := &ast.Expr{}
 	if err := p.expr(e); err != nil {
 		return err
 	}
@@ -372,9 +373,9 @@ func (p *Parser) vdeclStmt(vDecl *VarDeclStmt) error {
 	return nil
 }
 
-func (p *Parser) assignStmt(aStmt *AssignStmt, t token.Token) error {
+func (p *Parser) assignStmt(aStmt *ast.AssignStmt, t token.Token) error {
 	for !p.match(token.Assign) {
-		v := VarRef{}
+		v := ast.VarRef{}
 		if err := p.lvalue(&v, t); err != nil {
 			return err
 		}
@@ -383,7 +384,7 @@ func (p *Parser) assignStmt(aStmt *AssignStmt, t token.Token) error {
 	if err := p.eat(token.Assign, "expecting '='"); err != nil {
 		return err
 	}
-	e := &Expr{}
+	e := &ast.Expr{}
 	if err := p.expr(e); err != nil {
 		return err
 	}
@@ -391,7 +392,7 @@ func (p *Parser) assignStmt(aStmt *AssignStmt, t token.Token) error {
 	return nil
 }
 
-func (p *Parser) lvalue(v *VarRef, t token.Token) error {
+func (p *Parser) lvalue(v *ast.VarRef, t token.Token) error {
 	if p.match(token.Ident) {
 		v.VarName = p.currToken
 		p.advance()
@@ -407,7 +408,7 @@ func (p *Parser) lvalue(v *VarRef, t token.Token) error {
 
 	if p.match(token.LBracket) {
 		p.advance()
-		e := &Expr{}
+		e := &ast.Expr{}
 		if err := p.expr(e); err != nil {
 			return err
 		}
@@ -419,7 +420,7 @@ func (p *Parser) lvalue(v *VarRef, t token.Token) error {
 	return nil
 }
 
-func (p *Parser) ifStmt(iStmt *IfStmt) error {
+func (p *Parser) ifStmt(iStmt *ast.IfStmt) error {
 	if err := p.eat(token.If, "expecting 'if'"); err != nil {
 		return err
 	}
@@ -427,7 +428,7 @@ func (p *Parser) ifStmt(iStmt *IfStmt) error {
 		return err
 	}
 
-	e := &Expr{}
+	e := &ast.Expr{}
 	if err := p.expr(e); err != nil {
 		return err
 	}
@@ -441,7 +442,7 @@ func (p *Parser) ifStmt(iStmt *IfStmt) error {
 		return err
 	}
 
-	var stmts []Stmt
+	var stmts []ast.Stmt
 	if err := p.stmt(&stmts); err != nil {
 		return err
 	}
@@ -454,13 +455,13 @@ func (p *Parser) ifStmt(iStmt *IfStmt) error {
 	return p.ifStmtT(iStmt)
 }
 
-func (p *Parser) ifStmtT(i *IfStmt) error {
+func (p *Parser) ifStmtT(i *ast.IfStmt) error {
 	if p.match(token.ElseIf) {
-		bi := BasicIf{}
+		bi := ast.BasicIf{}
 
 		p.advance()
 
-		e := &Expr{}
+		e := &ast.Expr{}
 		if err := p.expr(e); err != nil {
 			return err
 		}
@@ -470,7 +471,7 @@ func (p *Parser) ifStmtT(i *IfStmt) error {
 			return err
 		}
 
-		var stmts []Stmt
+		var stmts []ast.Stmt
 		if err := p.stmt(&stmts); err != nil {
 			return err
 		}
@@ -488,7 +489,7 @@ func (p *Parser) ifStmtT(i *IfStmt) error {
 			return err
 		}
 
-		var stmts []Stmt
+		var stmts []ast.Stmt
 		if err := p.stmt(&stmts); err != nil {
 			return err
 		}
@@ -501,12 +502,12 @@ func (p *Parser) ifStmtT(i *IfStmt) error {
 	return nil
 }
 
-func (p *Parser) whileStmt(wStmt *WhileStmt) error {
+func (p *Parser) whileStmt(wStmt *ast.WhileStmt) error {
 	if err := p.eat(token.While, "expecting 'while'"); err != nil {
 		return err
 	}
 
-	e := &Expr{}
+	e := &ast.Expr{}
 	if err := p.expr(e); err != nil {
 		return err
 	}
@@ -516,7 +517,7 @@ func (p *Parser) whileStmt(wStmt *WhileStmt) error {
 		return err
 	}
 
-	var stmts []Stmt
+	var stmts []ast.Stmt
 	if err := p.stmt(&stmts); err != nil {
 		return err
 	}
@@ -528,7 +529,7 @@ func (p *Parser) whileStmt(wStmt *WhileStmt) error {
 	return nil
 }
 
-func (p *Parser) forStmt(fStmt *ForStmt) error {
+func (p *Parser) forStmt(fStmt *ast.ForStmt) error {
 	if err := p.eat(token.For, "expecting 'for'"); err != nil {
 		return err
 	}
@@ -537,7 +538,7 @@ func (p *Parser) forStmt(fStmt *ForStmt) error {
 		return err
 	}
 
-	vDecl := &VarDeclStmt{}
+	vDecl := &ast.VarDeclStmt{}
 	if err := p.dataType(&vDecl.VarDef); err != nil {
 		return err
 	}
@@ -549,7 +550,7 @@ func (p *Parser) forStmt(fStmt *ForStmt) error {
 		return err
 	}
 
-	e := &Expr{}
+	e := &ast.Expr{}
 	if err := p.expr(e); err != nil {
 		return err
 	}
@@ -559,7 +560,7 @@ func (p *Parser) forStmt(fStmt *ForStmt) error {
 		return err
 	}
 
-	aStmt := &AssignStmt{}
+	aStmt := &ast.AssignStmt{}
 	if err := p.assignStmt(aStmt, fStmt.VarDecl.VarDef.VarName); err != nil {
 		return err
 	}
@@ -573,7 +574,7 @@ func (p *Parser) forStmt(fStmt *ForStmt) error {
 		return err
 	}
 
-	var stmts []Stmt
+	var stmts []ast.Stmt
 	if err := p.stmt(&stmts); err != nil {
 		return err
 	}
@@ -585,13 +586,13 @@ func (p *Parser) forStmt(fStmt *ForStmt) error {
 	return nil
 }
 
-func (p *Parser) callExpr(cExpr *CallExpr) error {
+func (p *Parser) callExpr(cExpr *ast.CallExpr) error {
 	if err := p.eat(token.LParen, "expecting '('"); err != nil {
 		return err
 	}
 
-	if p.baseRValue() || p.matchAny([]token.Kind{token.NullVal, token.New, token.Ident}) {
-		e := &Expr{}
+	if !p.match(token.RParen) {
+		e := &ast.Expr{}
 		if err := p.expr(e); err != nil {
 			return err
 		}
@@ -599,7 +600,7 @@ func (p *Parser) callExpr(cExpr *CallExpr) error {
 
 		for p.match(token.Comma) {
 			p.advance()
-			e := &Expr{}
+			e := &ast.Expr{}
 			if err := p.expr(e); err != nil {
 				return err
 			}
@@ -613,11 +614,11 @@ func (p *Parser) callExpr(cExpr *CallExpr) error {
 	return nil
 }
 
-func (p *Parser) retStmt(rStmt *ReturnStmt) error {
+func (p *Parser) retStmt(rStmt *ast.ReturnStmt) error {
 	if err := p.eat(token.Return, "expecting 'return'"); err != nil {
 		return err
 	}
-	e := &Expr{}
+	e := &ast.Expr{}
 	if err := p.expr(e); err != nil {
 		return err
 	}
@@ -627,7 +628,7 @@ func (p *Parser) retStmt(rStmt *ReturnStmt) error {
 
 // Expression parsing
 
-func (p *Parser) expr(e *Expr) error {
+func (p *Parser) expr(e *ast.Expr) error {
 	for p.match(token.Not) {
 		e.Negated = true
 		p.advance()
@@ -635,8 +636,8 @@ func (p *Parser) expr(e *Expr) error {
 
 	if p.match(token.LParen) {
 		p.advance()
-		cTerm := &ComplexTerm{}
-		inner := &Expr{}
+		cTerm := &ast.ComplexTerm{}
+		inner := &ast.Expr{}
 		if err := p.expr(inner); err != nil {
 			return err
 		}
@@ -646,7 +647,7 @@ func (p *Parser) expr(e *Expr) error {
 			return err
 		}
 	} else if p.baseRValue() || p.baseType() || p.matchAny([]token.Kind{token.NullVal, token.New, token.Ident}) {
-		sTerm := &SimpleTerm{}
+		sTerm := &ast.SimpleTerm{}
 		if err := p.rvalue(sTerm); err != nil {
 			return err
 		}
@@ -655,11 +656,11 @@ func (p *Parser) expr(e *Expr) error {
 		return p.error("expecting expression start")
 	}
 
-	if p.binOp() || p.match(token.Comma) {
+	if p.binOp() {
 		op := p.currToken
 		e.Op = &op
 		p.advance()
-		restExpr := &Expr{}
+		restExpr := &ast.Expr{}
 		if err := p.expr(restExpr); err != nil {
 			return err
 		}
@@ -669,14 +670,14 @@ func (p *Parser) expr(e *Expr) error {
 	return nil
 }
 
-func (p *Parser) rvalue(sTerm *SimpleTerm) error {
+func (p *Parser) rvalue(sTerm *ast.SimpleTerm) error {
 	if p.matchAny([]token.Kind{token.NullVal}) || p.baseRValue() || p.baseType() {
-		sRVal := &SimpleRValue{Value: p.currToken}
+		sRVal := &ast.SimpleRValue{Value: p.currToken}
 		p.advance()
 		sTerm.RValue = sRVal
 	} else if p.match(token.New) {
 		p.advance()
-		newRVal := &NewRValue{}
+		newRVal := &ast.NewRValue{}
 		if err := p.newRValue(newRVal); err != nil {
 			return err
 		}
@@ -686,14 +687,14 @@ func (p *Parser) rvalue(sTerm *SimpleTerm) error {
 		p.advance()
 
 		if p.match(token.LParen) {
-			cExpr := &CallExpr{FunName: tmp}
+			cExpr := &ast.CallExpr{FunName: tmp}
 			if err := p.callExpr(cExpr); err != nil {
 				return err
 			}
 			sTerm.RValue = cExpr
 		} else {
-			v := VarRef{VarName: tmp}
-			vRVal := &VarRValue{}
+			v := ast.VarRef{VarName: tmp}
+			vRVal := &ast.VarRValue{}
 			vRVal.Path = append(vRVal.Path, v)
 			if err := p.varRValue(vRVal); err != nil {
 				return err
@@ -706,14 +707,14 @@ func (p *Parser) rvalue(sTerm *SimpleTerm) error {
 	return nil
 }
 
-func (p *Parser) newRValue(nRVal *NewRValue) error {
+func (p *Parser) newRValue(nRVal *ast.NewRValue) error {
 	if p.match(token.Ident) {
 		nRVal.Type = p.currToken
 		p.advance()
 
 		if p.match(token.LBracket) {
 			p.advance()
-			e := &Expr{}
+			e := &ast.Expr{}
 			if err := p.expr(e); err != nil {
 				return err
 			}
@@ -728,7 +729,7 @@ func (p *Parser) newRValue(nRVal *NewRValue) error {
 		if err := p.eat(token.LBrace, "expecting '{'"); err != nil {
 			return err
 		}
-		e := &Expr{}
+		e := &ast.Expr{}
 		if err := p.expr(e); err != nil {
 			return err
 		}
@@ -742,7 +743,7 @@ func (p *Parser) newRValue(nRVal *NewRValue) error {
 		if err := p.eat(token.LBracket, "expecting '['"); err != nil {
 			return err
 		}
-		e := &Expr{}
+		e := &ast.Expr{}
 		if err := p.expr(e); err != nil {
 			return err
 		}
@@ -754,18 +755,18 @@ func (p *Parser) newRValue(nRVal *NewRValue) error {
 	return nil
 }
 
-func (p *Parser) varRValue(vRVal *VarRValue) error {
+func (p *Parser) varRValue(vRVal *ast.VarRValue) error {
 	for p.matchAny([]token.Kind{token.Dot, token.LBracket}) {
 		if p.match(token.Dot) {
 			p.advance()
-			v := VarRef{VarName: p.currToken}
+			v := ast.VarRef{VarName: p.currToken}
 			vRVal.Path = append(vRVal.Path, v)
 			if err := p.eat(token.Ident, "expecting identifier"); err != nil {
 				return err
 			}
 		} else if p.match(token.LBracket) {
 			p.advance()
-			e := &Expr{}
+			e := &ast.Expr{}
 			if err := p.expr(e); err != nil {
 				return err
 			}

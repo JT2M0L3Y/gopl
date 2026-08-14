@@ -1,15 +1,17 @@
-package ast
+package printer
 
 import (
 	"fmt"
 	"io"
 	"strings"
 
+	"gopl/internal/ast"
 	"gopl/internal/token"
 )
 
 // PrintVisitor implements the Visitor interface for pretty-printing the AST
 type PrintVisitor struct {
+	ast.Visitor
 	out       io.Writer
 	indent    int
 	indentAmt int
@@ -44,7 +46,7 @@ func (pv *PrintVisitor) printf(format string, args ...interface{}) {
 
 // Visitor interface implementation
 
-func (pv *PrintVisitor) VisitProgram(p *Program) error {
+func (pv *PrintVisitor) VisitProgram(p *ast.Program) error {
 	for _, structDef := range p.StructDefs {
 		if err := structDef.Accept(pv); err != nil {
 			return err
@@ -58,7 +60,7 @@ func (pv *PrintVisitor) VisitProgram(p *Program) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitFuncDef(f *FuncDef) error {
+func (pv *PrintVisitor) VisitFuncDef(f *ast.FuncDef) error {
 	pv.printf("\n")
 
 	// Print return type
@@ -106,7 +108,7 @@ func (pv *PrintVisitor) VisitFuncDef(f *FuncDef) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitStructDef(s *StructDef) error {
+func (pv *PrintVisitor) VisitStructDef(s *ast.StructDef) error {
 	pv.printf("\nstruct %s {\n", s.StructName.Lexeme)
 
 	pv.incIndent()
@@ -133,20 +135,20 @@ func (pv *PrintVisitor) VisitStructDef(s *StructDef) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitReturnStmt(s *ReturnStmt) error {
+func (pv *PrintVisitor) VisitReturnStmt(r *ast.ReturnStmt) error {
 	pv.printf("return ")
-	return s.Expr.Accept(pv)
+	return r.Expr.Accept(pv)
 }
 
-func (pv *PrintVisitor) VisitWhileStmt(s *WhileStmt) error {
+func (pv *PrintVisitor) VisitWhileStmt(w *ast.WhileStmt) error {
 	pv.printf("while ")
-	if err := s.Condition.Accept(pv); err != nil {
+	if err := w.Condition.Accept(pv); err != nil {
 		return err
 	}
 	pv.printf(" {\n")
 
 	pv.incIndent()
-	for _, stmt := range s.Stmts {
+	for _, stmt := range w.Stmts {
 		pv.printIndent()
 		if err := stmt.Accept(pv); err != nil {
 			return err
@@ -160,23 +162,23 @@ func (pv *PrintVisitor) VisitWhileStmt(s *WhileStmt) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitForStmt(s *ForStmt) error {
+func (pv *PrintVisitor) VisitForStmt(f *ast.ForStmt) error {
 	pv.printf("for (")
-	if err := s.VarDecl.Accept(pv); err != nil {
+	if err := f.VarDecl.Accept(pv); err != nil {
 		return err
 	}
 	pv.printf("; ")
-	if err := s.Condition.Accept(pv); err != nil {
+	if err := f.Condition.Accept(pv); err != nil {
 		return err
 	}
 	pv.printf("; ")
-	if err := s.Assign.Accept(pv); err != nil {
+	if err := f.Assign.Accept(pv); err != nil {
 		return err
 	}
 	pv.printf(") {\n")
 
 	pv.incIndent()
-	for _, stmt := range s.Stmts {
+	for _, stmt := range f.Stmts {
 		pv.printIndent()
 		if err := stmt.Accept(pv); err != nil {
 			return err
@@ -190,15 +192,15 @@ func (pv *PrintVisitor) VisitForStmt(s *ForStmt) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitIfStmt(s *IfStmt) error {
+func (pv *PrintVisitor) VisitIfStmt(i *ast.IfStmt) error {
 	pv.printf("if (")
-	if err := s.IfPart.Condition.Accept(pv); err != nil {
+	if err := i.IfPart.Condition.Accept(pv); err != nil {
 		return err
 	}
 	pv.printf(") {\n")
 
 	pv.incIndent()
-	for _, stmt := range s.IfPart.Stmts {
+	for _, stmt := range i.IfPart.Stmts {
 		pv.printIndent()
 		if err := stmt.Accept(pv); err != nil {
 			return err
@@ -208,8 +210,8 @@ func (pv *PrintVisitor) VisitIfStmt(s *IfStmt) error {
 	pv.decIndent()
 
 	// Handle elseif statements
-	if len(s.ElseIfs) > 0 {
-		for _, bi := range s.ElseIfs {
+	if len(i.ElseIfs) > 0 {
+		for _, bi := range i.ElseIfs {
 			pv.printIndent()
 			pv.printf("}\n")
 			pv.printIndent()
@@ -232,14 +234,14 @@ func (pv *PrintVisitor) VisitIfStmt(s *IfStmt) error {
 	}
 
 	// Handle else statement
-	if len(s.ElseStmts) > 0 {
+	if len(i.ElseStmts) > 0 {
 		pv.printIndent()
 		pv.printf("}\n")
 		pv.printIndent()
 		pv.printf("else {\n")
 		pv.incIndent()
 
-		for _, stmt := range s.ElseStmts {
+		for _, stmt := range i.ElseStmts {
 			pv.printIndent()
 			if err := stmt.Accept(pv); err != nil {
 				return err
@@ -255,37 +257,37 @@ func (pv *PrintVisitor) VisitIfStmt(s *IfStmt) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitVarDeclStmt(s *VarDeclStmt) error {
-	if s.VarDef.DataType.IsArray {
-		pv.printf("array %s ", s.VarDef.DataType.TypeNames[0])
-	} else if s.VarDef.DataType.IsDict {
-		pv.printf("dict %s %s ", s.VarDef.DataType.TypeNames[0], s.VarDef.DataType.TypeNames[1])
+func (pv *PrintVisitor) VisitVarDeclStmt(v *ast.VarDeclStmt) error {
+	if v.VarDef.DataType.IsArray {
+		pv.printf("array %s ", v.VarDef.DataType.TypeNames[0])
+	} else if v.VarDef.DataType.IsDict {
+		pv.printf("dict %s %s ", v.VarDef.DataType.TypeNames[0], v.VarDef.DataType.TypeNames[1])
 	} else {
-		pv.printf("%s ", s.VarDef.DataType.TypeNames[0])
+		pv.printf("%s ", v.VarDef.DataType.TypeNames[0])
 	}
 
-	pv.printf("%s = ", s.VarDef.VarName.Lexeme)
-	return s.Expr.Accept(pv)
+	pv.printf("%s = ", v.VarDef.VarName.Lexeme)
+	return v.Expr.Accept(pv)
 }
 
-func (pv *PrintVisitor) VisitAssignStmt(s *AssignStmt) error {
-	if len(s.LValue) == 1 {
-		pv.printf("%s", s.LValue[0].VarName.Lexeme)
-		if s.LValue[0].ArrayExpr != nil {
+func (pv *PrintVisitor) VisitAssignStmt(a *ast.AssignStmt) error {
+	if len(a.LValue) == 1 {
+		pv.printf("%s", a.LValue[0].VarName.Lexeme)
+		if a.LValue[0].ArrayExpr != nil {
 			pv.printf("[")
-			if err := s.LValue[0].ArrayExpr.Accept(pv); err != nil {
+			if err := a.LValue[0].ArrayExpr.Accept(pv); err != nil {
 				return err
 			}
 			pv.printf("]")
-		} else if s.LValue[0].DictExpr != nil {
+		} else if a.LValue[0].DictExpr != nil {
 			pv.printf("[")
-			if err := s.LValue[0].DictExpr.Accept(pv); err != nil {
+			if err := a.LValue[0].DictExpr.Accept(pv); err != nil {
 				return err
 			}
 			pv.printf("]")
 		}
 	} else {
-		for i, lval := range s.LValue {
+		for i, lval := range a.LValue {
 			pv.printf("%s", lval.VarName.Lexeme)
 			if lval.ArrayExpr != nil {
 				pv.printf("[")
@@ -300,29 +302,29 @@ func (pv *PrintVisitor) VisitAssignStmt(s *AssignStmt) error {
 				}
 				pv.printf("]")
 			}
-			if i != len(s.LValue)-1 {
+			if i != len(a.LValue)-1 {
 				pv.printf(".")
 			}
 		}
 	}
 
 	pv.printf(" = ")
-	return s.Expr.Accept(pv)
+	return a.Expr.Accept(pv)
 }
 
-func (pv *PrintVisitor) VisitCallExpr(e *CallExpr) error {
-	pv.printf("%s(", e.FunName.Lexeme)
+func (pv *PrintVisitor) VisitCallExpr(c *ast.CallExpr) error {
+	pv.printf("%s(", c.FunName.Lexeme)
 
-	if len(e.Args) == 1 {
-		if err := e.Args[0].Accept(pv); err != nil {
+	if len(c.Args) == 1 {
+		if err := c.Args[0].Accept(pv); err != nil {
 			return err
 		}
-	} else if len(e.Args) > 1 {
-		for i, arg := range e.Args {
+	} else if len(c.Args) > 1 {
+		for i, arg := range c.Args {
 			if err := arg.Accept(pv); err != nil {
 				return err
 			}
-			if i != len(e.Args)-1 {
+			if i != len(c.Args)-1 {
 				pv.printf(", ")
 			}
 		}
@@ -332,7 +334,7 @@ func (pv *PrintVisitor) VisitCallExpr(e *CallExpr) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitExpr(e *Expr) error {
+func (pv *PrintVisitor) VisitExpr(e *ast.Expr) error {
 	if e.Op != nil {
 		if e.Negated {
 			pv.printf("not (")
@@ -370,43 +372,43 @@ func (pv *PrintVisitor) VisitExpr(e *Expr) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitSimpleTerm(t *SimpleTerm) error {
-	return t.RValue.Accept(pv)
+func (pv *PrintVisitor) VisitSimpleTerm(s *ast.SimpleTerm) error {
+	return s.RValue.Accept(pv)
 }
 
-func (pv *PrintVisitor) VisitComplexTerm(t *ComplexTerm) error {
+func (pv *PrintVisitor) VisitComplexTerm(c *ast.ComplexTerm) error {
 	pv.printf("(")
-	if err := t.Expr.Accept(pv); err != nil {
+	if err := c.Expr.Accept(pv); err != nil {
 		return err
 	}
 	pv.printf(")")
 	return nil
 }
 
-func (pv *PrintVisitor) VisitSimpleRValue(v *SimpleRValue) error {
-	switch v.Value.Kind {
+func (pv *PrintVisitor) VisitSimpleRValue(s *ast.SimpleRValue) error {
+	switch s.Value.Kind {
 	case token.StringVal:
-		pv.printf("\"%s\"", v.Value.Lexeme)
+		pv.printf("\"%s\"", s.Value.Lexeme)
 	case token.CharVal:
-		pv.printf("'%s'", v.Value.Lexeme)
+		pv.printf("'%s'", s.Value.Lexeme)
 	default:
-		pv.printf("%s", v.Value.Lexeme)
+		pv.printf("%s", s.Value.Lexeme)
 	}
 	return nil
 }
 
-func (pv *PrintVisitor) VisitNewRValue(v *NewRValue) error {
-	pv.printf("new %s", v.Type.Lexeme)
+func (pv *PrintVisitor) VisitNewRValue(n *ast.NewRValue) error {
+	pv.printf("new %s", n.Type.Lexeme)
 
-	if v.ArrayExpr != nil {
+	if n.ArrayExpr != nil {
 		pv.printf("[")
-		if err := v.ArrayExpr.Accept(pv); err != nil {
+		if err := n.ArrayExpr.Accept(pv); err != nil {
 			return err
 		}
 		pv.printf("]")
-	} else if v.DictExpr != nil {
+	} else if n.DictExpr != nil {
 		pv.printf("{")
-		if err := v.DictExpr.Accept(pv); err != nil {
+		if err := n.DictExpr.Accept(pv); err != nil {
 			return err
 		}
 		pv.printf("}")
@@ -415,7 +417,7 @@ func (pv *PrintVisitor) VisitNewRValue(v *NewRValue) error {
 	return nil
 }
 
-func (pv *PrintVisitor) VisitVarRValue(v *VarRValue) error {
+func (pv *PrintVisitor) VisitVarRValue(v *ast.VarRValue) error {
 	if len(v.Path) == 1 {
 		pv.printf("%s", v.Path[0].VarName.Lexeme)
 		if v.Path[0].ArrayExpr != nil {

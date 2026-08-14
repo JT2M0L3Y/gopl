@@ -1,6 +1,34 @@
 package ast
 
-import "gopl/internal/token"
+import (
+	"gopl/internal/token"
+)
+
+//----------------------------------------------------------------------
+// Visitor Interface
+//----------------------------------------------------------------------
+
+// Visitor is the interface for AST visitors (visitor pattern)
+type Visitor interface {
+	// top-level
+	VisitProgram(*Program) error
+	VisitFuncDef(*FuncDef) error
+	VisitStructDef(*StructDef) error
+	// statements
+	VisitReturnStmt(*ReturnStmt) error
+	VisitWhileStmt(*WhileStmt) error
+	VisitForStmt(*ForStmt) error
+	VisitIfStmt(*IfStmt) error
+	VisitVarDeclStmt(*VarDeclStmt) error
+	VisitAssignStmt(*AssignStmt) error
+	VisitCallExpr(*CallExpr) error
+	VisitExpr(*Expr) error
+	VisitSimpleTerm(*SimpleTerm) error
+	VisitComplexTerm(*ComplexTerm) error
+	VisitSimpleRValue(*SimpleRValue) error
+	VisitNewRValue(*NewRValue) error
+	VisitVarRValue(*VarRValue) error
+}
 
 //----------------------------------------------------------------------
 // Abstract AST Node Interfaces
@@ -26,31 +54,6 @@ type ExprTerm interface {
 type RValue interface {
 	ASTNode
 	FirstToken() token.Token
-}
-
-//----------------------------------------------------------------------
-// Visitor interface
-//----------------------------------------------------------------------
-
-type Visitor interface {
-	// top-level
-	VisitProgram(*Program) error
-	VisitFuncDef(*FuncDef) error
-	VisitStructDef(*StructDef) error
-	// statements
-	VisitReturnStmt(*ReturnStmt) error
-	VisitWhileStmt(*WhileStmt) error
-	VisitForStmt(*ForStmt) error
-	VisitIfStmt(*IfStmt) error
-	VisitVarDeclStmt(*VarDeclStmt) error
-	VisitAssignStmt(*AssignStmt) error
-	VisitCallExpr(*CallExpr) error
-	VisitExpr(*Expr) error
-	VisitSimpleTerm(*SimpleTerm) error
-	VisitComplexTerm(*ComplexTerm) error
-	VisitSimpleRValue(*SimpleRValue) error
-	VisitNewRValue(*NewRValue) error
-	VisitVarRValue(*VarRValue) error
 }
 
 //----------------------------------------------------------------------
