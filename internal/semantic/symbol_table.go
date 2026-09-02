@@ -1,5 +1,7 @@
 package semantic
 
+import "slices"
+
 import "gopl/internal/ast"
 
 // SymbolTable stores type information in nested scopes.
@@ -38,8 +40,8 @@ func (st *SymbolTable) Add(name string, info ast.DataType) {
 
 // NameExists reports whether a symbol exists in any visible scope.
 func (st *SymbolTable) NameExists(name string) bool {
-	for i := len(st.environments) - 1; i >= 0; i-- {
-		if _, ok := st.environments[i][name]; ok {
+	for _, v := range slices.Backward(st.environments) {
+		if _, ok := v[name]; ok {
 			return true
 		}
 	}
@@ -54,8 +56,8 @@ func (st *SymbolTable) NameExistsInCurrEnv(name string) bool {
 
 // Get returns the most recent matching symbol type.
 func (st *SymbolTable) Get(name string) (ast.DataType, bool) {
-	for i := len(st.environments) - 1; i >= 0; i-- {
-		if v, ok := st.environments[i][name]; ok {
+	for _, v := range slices.Backward(st.environments) {
+		if v, ok := v[name]; ok {
 			return v, true
 		}
 	}

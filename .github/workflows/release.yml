@@ -1,0 +1,139 @@
+name: Release
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  performance:
+    name: Measure merged PR
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      merge_sha: ${{ github.event.pull_request.merge_commit_sha }}
+    steps:
+      - name: Check out merge commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Calculate next version
+        id: version
+        shell: bash
+        run: |
+          latest=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
+          if [[ -z "$latest" ]]; then
+            version="0.1.0"
+          else
+            current="${latest#v}"
+            IFS=. read -r major minor patch <<< "$current"
+            version="${major}.${minor}.$((patch + 1))"
+          fi
+          if git rev-parse "v${version}" >/dev/null 2>&1; then
+            echo "version v${version} already exists" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Next release: v${version}"
+      - name: Verify source
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test -count=1 ./...
+      - name: Run release benchmarks
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          go test ./internal/pipeline -run '^$' -bench BenchmarkPipeline -benchmem -count=5 | tee artifacts/benchmark.txt
+          go test ./internal/pipeline -run '^$' -bench BenchmarkPipelineStages -benchmem -count=5 | tee -a artifacts/benchmark.txt
+      - name: Generate release profiles
+        run: go run ./cmd/profile -cpuprofile artifacts/gopl-${{ steps.version.outputs.version }}.cpu.pprof -memprofile artifacts/gopl-${{ steps.version.outputs.version }}.mem.pprof tests/fixtures/profile.gopl
+      - name: Build release binaries
+        shell: bash
+        run: |
+          mkdir -p dist
+          version="${{ steps.version.outputs.version }}"
+          for target in "linux amd64" "linux arm64" "darwin amd64" "darwin arm64" "windows amd64"; do
+            read -r goos goarch <<< "$target"
+            suffix=""
+            if [[ "$goos" == "windows" ]]; then suffix=".exe"; fi
+            name="gopl-${version}-${goos}-${goarch}"
+            GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags "-s -w -X gopl/internal/version.Value=${version}" -o "dist/${name}${suffix}" ./cmd/gopl
+          done
+      - name: Create release report
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          {
+            echo "# GoPL v${version}"
+            echo
+            echo "## Performance sign-off"
+            echo
+            echo "These results were collected from merge commit ${{ github.event.pull_request.merge_commit_sha }} before publication. Review the benchmark and profile artifacts before approving the release."
+            echo
+            echo '```text'
+            cat artifacts/benchmark.txt
+            echo '```'
+            echo
+            echo "Profiles and raw benchmark output are attached to this release."
+          } > artifacts/release-notes.md
+      - name: Upload release candidate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gopl-release-${{ steps.version.outputs.version }}
+          path: |
+            artifacts/
+            dist/
+
+  publish:
+    name: Publish approved release
+    needs: performance
+    if: needs.performance.result == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: release-signoff
+      url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Check out merge commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.performance.outputs.merge_sha }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download release candidate artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: gopl-release-${{ needs.performance.outputs.version }}
+          path: release
+      - name: Create version tag
+        shell: bash
+        run: |
+          version="v${{ needs.performance.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$version" "${{ needs.performance.outputs.merge_sha }}" -m "Release $version"
+          git push origin "$version"
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.performance.outputs.version }}
+          name: GoPL v${{ needs.performance.outputs.version }}
+          body_path: release/artifacts/release-notes.md
+          files: release/dist/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true

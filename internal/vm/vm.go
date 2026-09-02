@@ -3,11 +3,10 @@ package vm
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
-
-	"gopl/internal/utils"
 )
 
 type VM struct {
@@ -15,7 +14,9 @@ type VM struct {
 	arrayHeap  map[int][]Value
 	nextObjID  int
 	frameInfo  map[string]FrameInfo
-	callStack  *utils.Stack[*Frame]
+	callStack  *stack[*Frame]
+	input      io.Reader
+	output     io.Writer
 }
 
 func New() *VM {
@@ -24,7 +25,21 @@ func New() *VM {
 		arrayHeap:  map[int][]Value{},
 		nextObjID:  2023,
 		frameInfo:  map[string]FrameInfo{},
-		callStack:  utils.New[*Frame](),
+		callStack:  newStack[*Frame](),
+		input:      os.Stdin,
+		output:     os.Stdout,
+	}
+}
+
+func (vm *VM) SetInput(input io.Reader) {
+	if input != nil {
+		vm.input = input
+	}
+}
+
+func (vm *VM) SetOutput(output io.Writer) {
+	if output != nil {
+		vm.output = output
 	}
 }
 
@@ -42,38 +57,40 @@ func (vm *VM) Add(frame *FrameInfo) {
 		vm.nextObjID = 2023
 	}
 	if vm.callStack == nil {
-		vm.callStack = utils.New[*Frame]()
+		vm.callStack = newStack[*Frame]()
 	}
 	vm.frameInfo[frame.Name] = *frame
 }
 
 func (vm *VM) Execute(debug bool) error {
 	if vm.callStack == nil {
-		vm.callStack = utils.New[*Frame]()
+		vm.callStack = newStack[*Frame]()
 	}
 	info, ok := vm.frameInfo["main"]
 	if !ok {
 		return fmt.Errorf("VM error: no 'main' function")
 	}
 	frame := &Frame{Info: info}
-	if err := vm.callStack.Push(frame); err != nil {
-		return err
-	}
-	reader := bufio.NewReader(os.Stdin)
-	for !vm.callStack.IsEmpty() {
+	vm.callStack.push(frame)
+	reader := bufio.NewReader(vm.input)
+	for !vm.callStack.isEmpty() {
 		if frame.ProgCount >= len(frame.Info.Instructions) {
-			vm.callStack.Pop()
-			if vm.callStack.IsEmpty() {
+			if _, err := vm.callStack.pop(); err != nil {
+				return err
+			}
+			if vm.callStack.isEmpty() {
 				break
 			}
-			frame, _ = vm.callStack.Peek()
+			frame, _ = vm.callStack.peek()
 			continue
 		}
 		pc := frame.ProgCount
 		instr := frame.Info.Instructions[pc]
 		frame.ProgCount++
 		if debug {
-			fmt.Fprintf(os.Stderr, "%s[%d] %s\n", frame.Info.Name, pc, (&instr).String(&instr))
+			if _, err := fmt.Fprintf(os.Stderr, "%s[%d] %s\n", frame.Info.Name, pc, (&instr).String(&instr)); err != nil {
+				return err
+			}
 		}
 		if err := vm.executeInstr(&frame, instr, reader); err != nil {
 			return fmt.Errorf("%v (in %s at %d)", err, frame.Info.Name, pc)
@@ -283,20 +300,20 @@ func (vm *VM) executeInstr(frame **Frame, instr Instr, reader *bufio.Reader) err
 			}
 			callee.OpStack = append(callee.OpStack, v)
 		}
-		if err := vm.callStack.Push(callee); err != nil {
-			return err
-		}
+		vm.callStack.push(callee)
 		*frame = callee
 	case RET:
 		result, err := pop(f)
 		if err != nil {
 			return err
 		}
-		vm.callStack.Pop()
-		if vm.callStack.IsEmpty() {
+		if _, err := vm.callStack.pop(); err != nil {
+			return err
+		}
+		if vm.callStack.isEmpty() {
 			return nil
 		}
-		caller, _ := vm.callStack.Peek()
+		caller, _ := vm.callStack.peek()
 		push(caller, result)
 		*frame = caller
 	case WRITE:
@@ -304,7 +321,9 @@ func (vm *VM) executeInstr(frame **Frame, instr Instr, reader *bufio.Reader) err
 		if err != nil {
 			return err
 		}
-		fmt.Print(ValueString(v))
+		if _, err := fmt.Fprint(vm.output, ValueString(v)); err != nil {
+			return err
+		}
 	case READ:
 		s, err := reader.ReadString('\n')
 		if err != nil && len(s) == 0 {
