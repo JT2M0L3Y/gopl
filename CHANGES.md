@@ -24,7 +24,6 @@ This file records major implementation decisions and the reason for each change.
 
 - structs
 - arrays
-- dictionaries and maps
 - functions
 - control flow
 - builtins for printing, input, and collection helpers
@@ -37,7 +36,6 @@ Use this file for changes such as:
 - lexer and parser behavior changes
 - semantic rule changes
 - runtime and VM representation choices
-- dictionary or map semantics
 - CI and release pipeline changes
 
 ## What should not live here
