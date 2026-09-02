@@ -1,5 +1,9 @@
 version: "2"
 
+run:
+  timeout: 5m
+  allow-parallel-runners: true
+
 linters:
   default: standard
   enable:
@@ -7,6 +11,7 @@ linters:
     - govet
     - staticcheck
     - unused
+    - ineffassign
 
 formatters:
   enable:

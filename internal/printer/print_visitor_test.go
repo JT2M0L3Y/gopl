@@ -15,7 +15,11 @@ func TestPrintVisitorProducesProgram(t *testing.T) {
 		t.Fatal(err)
 	}
 	var output bytes.Buffer
-	if err := program.Accept(NewPrintVisitor(&output)); err != nil {
+	visitor := NewPrintVisitor(&output)
+	if err := program.Accept(visitor); err != nil {
+		t.Fatal(err)
+	}
+	if err := visitor.Err(); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(output.String(), "void main()") || !strings.Contains(output.String(), "print(2 + 3)") {

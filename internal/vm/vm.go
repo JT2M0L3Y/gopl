@@ -79,7 +79,9 @@ func (vm *VM) Execute(debug bool) error {
 	reader := bufio.NewReader(vm.input)
 	for !vm.callStack.IsEmpty() {
 		if frame.ProgCount >= len(frame.Info.Instructions) {
-			vm.callStack.Pop()
+			if _, err := vm.callStack.Pop(); err != nil {
+				return err
+			}
 			if vm.callStack.IsEmpty() {
 				break
 			}
@@ -90,7 +92,9 @@ func (vm *VM) Execute(debug bool) error {
 		instr := frame.Info.Instructions[pc]
 		frame.ProgCount++
 		if debug {
-			fmt.Fprintf(os.Stderr, "%s[%d] %s\n", frame.Info.Name, pc, (&instr).String(&instr))
+			if _, err := fmt.Fprintf(os.Stderr, "%s[%d] %s\n", frame.Info.Name, pc, (&instr).String(&instr)); err != nil {
+				return err
+			}
 		}
 		if err := vm.executeInstr(&frame, instr, reader); err != nil {
 			return fmt.Errorf("%v (in %s at %d)", err, frame.Info.Name, pc)
@@ -309,7 +313,9 @@ func (vm *VM) executeInstr(frame **Frame, instr Instr, reader *bufio.Reader) err
 		if err != nil {
 			return err
 		}
-		vm.callStack.Pop()
+		if _, err := vm.callStack.Pop(); err != nil {
+			return err
+		}
 		if vm.callStack.IsEmpty() {
 			return nil
 		}
@@ -321,7 +327,9 @@ func (vm *VM) executeInstr(frame **Frame, instr Instr, reader *bufio.Reader) err
 		if err != nil {
 			return err
 		}
-		fmt.Fprint(vm.output, ValueString(v))
+		if _, err := fmt.Fprint(vm.output, ValueString(v)); err != nil {
+			return err
+		}
 	case READ:
 		s, err := reader.ReadString('\n')
 		if err != nil && len(s) == 0 {

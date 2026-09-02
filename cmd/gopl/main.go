@@ -10,7 +10,7 @@ import (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "usage: gopl <source-file>")
+		writeStderr("usage: gopl <source-file>")
 	}
 	flag.Parse()
 	if flag.NArg() != 1 {
@@ -20,12 +20,22 @@ func main() {
 
 	src, err := os.Open(flag.Arg(0))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		writeStderr(err.Error())
 		os.Exit(1)
 	}
-	defer src.Close()
+	defer func() {
+		if err := src.Close(); err != nil {
+			writeStderr(err.Error())
+		}
+	}()
 	if _, err := pipeline.Run(src, os.Stdin, os.Stdout); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		writeStderr(err.Error())
+		os.Exit(1)
+	}
+}
+
+func writeStderr(message string) {
+	if _, err := fmt.Fprintln(os.Stderr, message); err != nil {
 		os.Exit(1)
 	}
 }

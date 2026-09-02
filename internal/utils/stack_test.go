@@ -4,8 +4,12 @@ import "testing"
 
 func TestStackLIFO(t *testing.T) {
 	stack := New[int]()
-	stack.Push(1)
-	stack.Push(2)
+	if err := stack.Push(1); err != nil {
+		t.Fatal(err)
+	}
+	if err := stack.Push(2); err != nil {
+		t.Fatal(err)
+	}
 	if got, err := stack.Peek(); err != nil || got != 2 {
 		t.Fatalf("Peek() = %d, %v", got, err)
 	}

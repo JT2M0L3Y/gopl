@@ -15,6 +15,7 @@ type PrintVisitor struct {
 	out       io.Writer
 	indent    int
 	indentAmt int
+	writeErr  error
 }
 
 // NewPrintVisitor creates a new PrintVisitor that writes to the given writer
@@ -37,11 +38,20 @@ func (pv *PrintVisitor) decIndent() {
 }
 
 func (pv *PrintVisitor) printIndent() {
-	fmt.Fprint(pv.out, strings.Repeat(" ", pv.indent))
+	if pv.writeErr == nil {
+		_, pv.writeErr = fmt.Fprint(pv.out, strings.Repeat(" ", pv.indent))
+	}
 }
 
 func (pv *PrintVisitor) printf(format string, args ...interface{}) {
-	fmt.Fprintf(pv.out, format, args...)
+	if pv.writeErr == nil {
+		_, pv.writeErr = fmt.Fprintf(pv.out, format, args...)
+	}
+}
+
+// Err returns the first output error encountered by the visitor.
+func (pv *PrintVisitor) Err() error {
+	return pv.writeErr
 }
 
 // Visitor interface implementation
@@ -57,7 +67,7 @@ func (pv *PrintVisitor) VisitProgram(p *ast.Program) error {
 			return err
 		}
 	}
-	return nil
+	return pv.Err()
 }
 
 func (pv *PrintVisitor) VisitFuncDef(f *ast.FuncDef) error {
