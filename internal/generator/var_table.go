@@ -1,5 +1,7 @@
 package generator
 
+import "slices"
+
 type VarTable struct {
 	environments []map[string]int
 }
@@ -33,8 +35,8 @@ func (t *VarTable) Size() int {
 }
 
 func (t *VarTable) Get(name string) (int, bool) {
-	for i := len(t.environments) - 1; i >= 0; i-- {
-		if n, ok := t.environments[i][name]; ok {
+	for _, v := range slices.Backward(t.environments) {
+		if n, ok := v[name]; ok {
 			return n, true
 		}
 	}

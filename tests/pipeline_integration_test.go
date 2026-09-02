@@ -9,13 +9,15 @@ import (
 )
 
 func TestPipelineIntegration(t *testing.T) {
-	program := `int add(int left, int right) {
-  return left + right
-}
+	program := `
+		int add(int left, int right) {
+  		return left + right
+		}
 
-void main() {
-  print(add(20, 22))
-}`
+		void main() {
+			print(add(20, 22))
+		}
+	`
 
 	var output bytes.Buffer
 	_, err := pipeline.Run(strings.NewReader(program), strings.NewReader(""), &output)

@@ -5,6 +5,7 @@ import (
 	"gopl/internal/ast"
 	"gopl/internal/lexer"
 	"gopl/internal/token"
+	"slices"
 )
 
 // Parser performs recursive descent parsing on tokens
@@ -62,14 +63,7 @@ func (p *Parser) match(k token.Kind) bool {
 }
 
 func (p *Parser) matchAny(kinds []token.Kind) bool {
-	for _, k := range kinds {
-		if p.match(k) {
-			return true
-		}
-	}
-	return false
-	// ! Go slices can replace this
-	// return slices.ContainsFunc(kinds, p.match)
+	return slices.ContainsFunc(kinds, p.match)
 }
 
 func (p *Parser) error(msg string) error {
