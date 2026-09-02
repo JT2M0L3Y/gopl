@@ -32,7 +32,7 @@ func Run(source io.Reader, input io.Reader, output io.Writer) (Metrics, error) {
 	program, err := parser.New(lex).Parse()
 	frontend := time.Since(start)
 	metrics.Lex = lex.Duration()
-	metrics.Parse = max(frontend - metrics.Lex, 0)
+	metrics.Parse = max(frontend-metrics.Lex, 0)
 	if err != nil {
 		return metrics, err
 	}
