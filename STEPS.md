@@ -7,7 +7,6 @@ The main goals are:
 - learn Go through a real compiler/interpreter project
 - preserve the useful parts of the MyPL language
 - redesign the implementation to fit Go idioms
-- complete dictionary and map support
 - keep the code generator and VM for now, then revisit the architecture once the Go version is working end to end
 
 ## Stage 1: Project shape
@@ -42,7 +41,6 @@ The main goals are:
 - port the symbol table
 - port the variable table
 - port type and scope checks
-- add or refine dictionary and map typing rules
 
 ## Stage 6: Code generation
 
@@ -55,12 +53,11 @@ The main goals are:
 
 - port the VM runtime
 - implement stack, call frame, heap, and object handling
-- support structs, arrays, and dictionaries
+- support structs and arrays
 - confirm runtime behavior matches the language rules
 
 ## Stage 8: Builtins and language completeness
 
-- finish dictionary and map methods
 - verify string and array helpers
 - implement remaining builtins and edge cases
 - decide whether any original features should be simplified for Go

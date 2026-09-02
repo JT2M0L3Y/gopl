@@ -40,7 +40,6 @@ var KeywordTokens = map[string]Kind{
 	"void":   VoidType,
 	"struct": Struct,
 	"array":  Array,
-	"dict":   Dict,
 	"for":    For,
 	"while":  While,
 	"if":     If,
@@ -107,7 +106,6 @@ const (
 	Not    Kind = "not"
 	New    Kind = "new"
 	Return Kind = "return"
-	Dict   Kind = "dict"
 )
 
 // Token captures a lexeme and its source location.

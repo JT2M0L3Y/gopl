@@ -128,7 +128,7 @@ func (sc *SemanticChecker) resolveTypeForToken(tok token.Token) string {
 }
 
 func sameType(a, b ast.DataType) bool {
-	if a.IsArray != b.IsArray || a.IsDict != b.IsDict {
+	if a.IsArray != b.IsArray {
 		return false
 	}
 	if len(a.TypeNames) != len(b.TypeNames) {
@@ -147,9 +147,6 @@ func assignCompatible(lhs, rhs ast.DataType) bool {
 		return true
 	}
 	if lhs.IsArray && rhs.IsArray && len(lhs.TypeNames) == 1 && len(rhs.TypeNames) == 1 && lhs.TypeNames[0] == rhs.TypeNames[0] {
-		return true
-	}
-	if lhs.IsDict && rhs.IsDict && len(lhs.TypeNames) == 2 && len(rhs.TypeNames) == 2 && lhs.TypeNames[0] == rhs.TypeNames[0] && lhs.TypeNames[1] == rhs.TypeNames[1] {
 		return true
 	}
 	return false
@@ -505,13 +502,6 @@ func (sc *SemanticChecker) VisitNewRValue(v *ast.NewRValue) error {
 			return sc.errorf("new array size must be int")
 		}
 		sc.CurrType = ast.DataType{IsArray: true, TypeNames: []string{v.Type.Lexeme}}
-		return nil
-	}
-	if v.DictExpr != nil {
-		if err := v.DictExpr.Accept(sc); err != nil {
-			return err
-		}
-		sc.CurrType = ast.DataType{IsDict: true, TypeNames: []string{v.Type.Lexeme}}
 		return nil
 	}
 	sc.CurrType = ast.DataType{TypeNames: []string{v.Type.Lexeme}}

@@ -243,19 +243,6 @@ func (p *Parser) dataType(v *ast.VarDef) error {
 			v.DataType.TypeNames = append(v.DataType.TypeNames, p.currToken.Lexeme)
 			p.advance()
 		}
-	} else if p.match(token.Dict) {
-		v.DataType.IsDict = true
-		p.advance()
-		// parse key type (typically string)
-		if p.match(token.StringType) {
-			v.DataType.TypeNames = append(v.DataType.TypeNames, p.currToken.Lexeme)
-			p.advance()
-		}
-		// parse value type
-		if p.baseType() {
-			v.DataType.TypeNames = append(v.DataType.TypeNames, p.currToken.Lexeme)
-			p.advance()
-		}
 	} else {
 		return p.error("expecting type")
 	}
@@ -290,7 +277,7 @@ func (p *Parser) stmt(stmts *[]ast.Stmt) error {
 				return err
 			}
 			*stmts = append(*stmts, rStmt)
-		} else if p.matchAny([]token.Kind{token.Array, token.Dict}) || p.baseType() {
+		} else if p.match(token.Array) || p.baseType() {
 			vDecl := &ast.VarDeclStmt{}
 			if err := p.dataType(&vDecl.VarDef); err != nil {
 				return err
@@ -319,11 +306,7 @@ func (p *Parser) stmt(stmts *[]ast.Stmt) error {
 					return err
 				}
 				v := ast.VarRef{VarName: idToken}
-				if e.First != nil && e.First.FirstToken().Kind == token.StringVal {
-					v.DictExpr = e
-				} else {
-					v.ArrayExpr = e
-				}
+				v.ArrayExpr = e
 				aStmt.LValue = append(aStmt.LValue, v)
 				if err := p.eat(token.RBracket, "expecting ']'"); err != nil {
 					return err
@@ -723,20 +706,6 @@ func (p *Parser) newRValue(nRVal *ast.NewRValue) error {
 				return err
 			}
 		}
-	} else if p.match(token.Dict) {
-		nRVal.Type = p.currToken
-		p.advance()
-		if err := p.eat(token.LBrace, "expecting '{'"); err != nil {
-			return err
-		}
-		e := &ast.Expr{}
-		if err := p.expr(e); err != nil {
-			return err
-		}
-		nRVal.DictExpr = e
-		if err := p.eat(token.RBrace, "expecting '}'"); err != nil {
-			return err
-		}
 	} else if p.baseType() {
 		nRVal.Type = p.currToken
 		p.advance()
@@ -770,11 +739,7 @@ func (p *Parser) varRValue(vRVal *ast.VarRValue) error {
 			if err := p.expr(e); err != nil {
 				return err
 			}
-			if e.First != nil && e.First.FirstToken().Kind == token.StringVal {
-				vRVal.Path[len(vRVal.Path)-1].DictExpr = e
-			} else {
-				vRVal.Path[len(vRVal.Path)-1].ArrayExpr = e
-			}
+			vRVal.Path[len(vRVal.Path)-1].ArrayExpr = e
 			if err := p.eat(token.RBracket, "expecting ']'"); err != nil {
 				return err
 			}

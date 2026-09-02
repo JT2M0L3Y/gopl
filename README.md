@@ -11,7 +11,6 @@ The goal is not a line-for-line translation. The goal is to learn Go while build
 - symbol and variable tables
 - code generator
 - virtual machine
-- dictionary and map support
 
 We will keep the code generator and VM for now so the project preserves the full compiler/interpreter pipeline. Once the Go implementation is complete, we can decide whether that architecture still earns its complexity or whether the runtime should be simplified.
 
@@ -32,4 +31,4 @@ The port will move in layers:
 
 ## Current focus
 
-The first pass will walk from the entrypoint through tokenization, parsing, AST construction, semantic checks, code generation, and VM execution, while adding support for dictionaries and other missing pieces from the original C++ project.
+The current implementation walks from the entrypoint through tokenization, parsing, AST construction, semantic checks, code generation, and VM execution. Additional language features will be added deliberately as separate stages.

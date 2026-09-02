@@ -72,7 +72,6 @@ func (p *Program) Accept(v Visitor) error {
 
 type DataType struct {
 	IsArray   bool
-	IsDict    bool
 	TypeNames []string
 }
 
@@ -176,7 +175,6 @@ type NewRValue struct {
 	RValue
 	Type      token.Token
 	ArrayExpr *Expr
-	DictExpr  *Expr
 }
 
 func (n *NewRValue) Accept(v Visitor) error {
@@ -190,7 +188,6 @@ func (n *NewRValue) FirstToken() token.Token {
 type VarRef struct {
 	VarName   token.Token
 	ArrayExpr *Expr
-	DictExpr  *Expr
 }
 
 type VarRValue struct {

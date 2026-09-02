@@ -66,8 +66,6 @@ func (pv *PrintVisitor) VisitFuncDef(f *ast.FuncDef) error {
 	// Print return type
 	if f.ReturnType.IsArray {
 		pv.printf("array %s ", f.ReturnType.TypeNames[0])
-	} else if f.ReturnType.IsDict {
-		pv.printf("dict %s %s ", f.ReturnType.TypeNames[0], f.ReturnType.TypeNames[1])
 	} else {
 		pv.printf("%s ", f.ReturnType.TypeNames[0])
 	}
@@ -78,8 +76,6 @@ func (pv *PrintVisitor) VisitFuncDef(f *ast.FuncDef) error {
 	for i, param := range f.Params {
 		if param.DataType.IsArray {
 			pv.printf("array %s ", param.DataType.TypeNames[0])
-		} else if param.DataType.IsDict {
-			pv.printf("dict %s %s ", param.DataType.TypeNames[0], param.DataType.TypeNames[1])
 		} else {
 			pv.printf("%s ", param.DataType.TypeNames[0])
 		}
@@ -117,8 +113,6 @@ func (pv *PrintVisitor) VisitStructDef(s *ast.StructDef) error {
 
 		if field.DataType.IsArray {
 			pv.printf("array %s ", field.DataType.TypeNames[0])
-		} else if field.DataType.IsDict {
-			pv.printf("dict %s %s ", field.DataType.TypeNames[0], field.DataType.TypeNames[1])
 		} else {
 			pv.printf("%s ", field.DataType.TypeNames[0])
 		}
@@ -260,8 +254,6 @@ func (pv *PrintVisitor) VisitIfStmt(i *ast.IfStmt) error {
 func (pv *PrintVisitor) VisitVarDeclStmt(v *ast.VarDeclStmt) error {
 	if v.VarDef.DataType.IsArray {
 		pv.printf("array %s ", v.VarDef.DataType.TypeNames[0])
-	} else if v.VarDef.DataType.IsDict {
-		pv.printf("dict %s %s ", v.VarDef.DataType.TypeNames[0], v.VarDef.DataType.TypeNames[1])
 	} else {
 		pv.printf("%s ", v.VarDef.DataType.TypeNames[0])
 	}
@@ -279,12 +271,6 @@ func (pv *PrintVisitor) VisitAssignStmt(a *ast.AssignStmt) error {
 				return err
 			}
 			pv.printf("]")
-		} else if a.LValue[0].DictExpr != nil {
-			pv.printf("[")
-			if err := a.LValue[0].DictExpr.Accept(pv); err != nil {
-				return err
-			}
-			pv.printf("]")
 		}
 	} else {
 		for i, lval := range a.LValue {
@@ -292,12 +278,6 @@ func (pv *PrintVisitor) VisitAssignStmt(a *ast.AssignStmt) error {
 			if lval.ArrayExpr != nil {
 				pv.printf("[")
 				if err := lval.ArrayExpr.Accept(pv); err != nil {
-					return err
-				}
-				pv.printf("]")
-			} else if lval.DictExpr != nil {
-				pv.printf("[")
-				if err := lval.DictExpr.Accept(pv); err != nil {
 					return err
 				}
 				pv.printf("]")
@@ -406,12 +386,6 @@ func (pv *PrintVisitor) VisitNewRValue(n *ast.NewRValue) error {
 			return err
 		}
 		pv.printf("]")
-	} else if n.DictExpr != nil {
-		pv.printf("{")
-		if err := n.DictExpr.Accept(pv); err != nil {
-			return err
-		}
-		pv.printf("}")
 	}
 
 	return nil
@@ -423,12 +397,6 @@ func (pv *PrintVisitor) VisitVarRValue(v *ast.VarRValue) error {
 		if v.Path[0].ArrayExpr != nil {
 			pv.printf("[")
 			if err := v.Path[0].ArrayExpr.Accept(pv); err != nil {
-				return err
-			}
-			pv.printf("]")
-		} else if v.Path[0].DictExpr != nil {
-			pv.printf("[")
-			if err := v.Path[0].DictExpr.Accept(pv); err != nil {
 				return err
 			}
 			pv.printf("]")
@@ -444,12 +412,6 @@ func (pv *PrintVisitor) VisitVarRValue(v *ast.VarRValue) error {
 			if varRef.ArrayExpr != nil {
 				pv.printf("[")
 				if err := varRef.ArrayExpr.Accept(pv); err != nil {
-					return err
-				}
-				pv.printf("]")
-			} else if varRef.DictExpr != nil {
-				pv.printf("[")
-				if err := varRef.DictExpr.Accept(pv); err != nil {
 					return err
 				}
 				pv.printf("]")
