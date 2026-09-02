@@ -453,8 +453,8 @@ func (sc *SemanticChecker) VisitExpr(e *ast.Expr) error {
 		}
 		sc.CurrType = ast.DataType{TypeNames: []string{"bool"}}
 	case token.Plus, token.Minus, token.Times, token.Divide:
-		if !((sameType(leftType, ast.DataType{TypeNames: []string{"int"}}) && sameType(rightType, ast.DataType{TypeNames: []string{"int"}})) ||
-			(sameType(leftType, ast.DataType{TypeNames: []string{"double"}}) && sameType(rightType, ast.DataType{TypeNames: []string{"double"}}))) {
+		if (!sameType(leftType, ast.DataType{TypeNames: []string{"int"}}) || !sameType(rightType, ast.DataType{TypeNames: []string{"int"}})) &&
+			(!sameType(leftType, ast.DataType{TypeNames: []string{"double"}}) || !sameType(rightType, ast.DataType{TypeNames: []string{"double"}})) {
 			return sc.errorf("using arithmetic ops on non-int/double types")
 		}
 		sc.CurrType = leftType

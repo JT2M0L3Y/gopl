@@ -25,10 +25,9 @@ type Metrics struct {
 func Run(source io.Reader, input io.Reader, output io.Writer) (Metrics, error) {
 	var metrics Metrics
 
-	start := time.Now()
 	lex := lexer.New(source)
 
-	start = time.Now()
+	start := time.Now()
 	program, err := parser.New(lex).Parse()
 	frontend := time.Since(start)
 	metrics.Lex = lex.Duration()
