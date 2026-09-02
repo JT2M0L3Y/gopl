@@ -68,6 +68,45 @@ The main goals are:
 - add parser and AST tests
 - add semantic tests
 - add VM and end-to-end execution tests
+- add benchmarks for the complete pipeline and expensive individual stages
+- record allocations and timing before optimizing
+
+## Performance
+
+Tests are organized into three layers:
+
+- unit tests live beside their package as `*_test.go`
+- integration tests live in `tests/` and exercise public package boundaries
+- benchmarks live beside the code they measure, with `_benchmark_test.go` names
+
+Run the full test suite with:
+
+```text
+go test ./...
+```
+
+Run integration tests only with:
+
+```text
+go test ./tests -v
+```
+
+The pipeline returns stage timings through `internal/pipeline.Metrics`. Run the complete and stage-level benchmarks with:
+
+```text
+go test ./internal/pipeline -run '^$' -bench BenchmarkPipeline -benchmem
+go test ./internal/pipeline -run '^$' -bench BenchmarkPipelineStages -benchmem
+```
+
+Optimization work should be guided by benchmark results. Compiler stages remain sequential until profiling identifies independent work that benefits from goroutines or channels.
+
+Generate local CPU and heap profiles with:
+
+```text
+go run ./cmd/profile -cpuprofile gopl.cpu.pprof -memprofile gopl.mem.pprof tests/fixtures/profile.gopl
+go tool pprof gopl.cpu.pprof
+go tool pprof gopl.mem.pprof
+```
 
 ## Stage 10: GitHub Actions
 

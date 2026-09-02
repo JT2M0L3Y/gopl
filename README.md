@@ -32,3 +32,24 @@ The port will move in layers:
 ## Current focus
 
 The current implementation walks from the entrypoint through tokenization, parsing, AST construction, semantic checks, code generation, and VM execution. Additional language features will be added deliberately as separate stages.
+
+Tests live beside the package they exercise as `*_test.go` files. The `tests/` directory is reserved for black-box integration tests and source fixtures. Run the complete suite with `go test ./...`.
+
+The command-line programs live under `cmd/`: run the interpreter with `go run ./cmd/gopl <source-file>` and the profiler with `go run ./cmd/profile [options] <source-file>`.
+
+## Quality checks
+
+Local validation mirrors CI:
+
+```text
+gofmt -l .
+go vet ./...
+go test ./...
+go build ./...
+```
+
+CI also runs `golangci-lint` on every push and pull request. Scheduled and manually triggered performance workflows run repeated benchmarks and upload CPU and heap profiles. Profiles can be generated locally with:
+
+```text
+go run ./cmd/profile -cpuprofile gopl.cpu.pprof -memprofile gopl.mem.pprof tests/fixtures/profile.gopl
+```

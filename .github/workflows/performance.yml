@@ -1,0 +1,35 @@
+name: Performance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run benchmarks
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          go test ./internal/pipeline -run '^$' -bench . -benchmem -count=5 | tee artifacts/pipeline-benchmark.txt
+      - name: Generate CPU and heap profiles
+        shell: bash
+        run: |
+          go run ./cmd/profile -cpuprofile artifacts/gopl.cpu.pprof -memprofile artifacts/gopl.mem.pprof tests/fixtures/profile.gopl
+      - name: Upload performance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gopl-performance-${{ github.sha }}
+          path: artifacts/

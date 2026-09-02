@@ -294,7 +294,7 @@ func (p *Parser) stmt(stmts *[]ast.Stmt) error {
 				aStmt := &ast.AssignStmt{}
 				v := ast.VarRef{VarName: idToken}
 				aStmt.LValue = append(aStmt.LValue, v)
-				if err := p.assignStmt(aStmt, idToken); err != nil {
+				if err := p.assignStmt(aStmt); err != nil {
 					return err
 				}
 				*stmts = append(*stmts, aStmt)
@@ -311,7 +311,7 @@ func (p *Parser) stmt(stmts *[]ast.Stmt) error {
 				if err := p.eat(token.RBracket, "expecting ']'"); err != nil {
 					return err
 				}
-				if err := p.assignStmt(aStmt, idToken); err != nil {
+				if err := p.assignStmt(aStmt); err != nil {
 					return err
 				}
 				*stmts = append(*stmts, aStmt)
@@ -356,10 +356,10 @@ func (p *Parser) vdeclStmt(vDecl *ast.VarDeclStmt) error {
 	return nil
 }
 
-func (p *Parser) assignStmt(aStmt *ast.AssignStmt, t token.Token) error {
+func (p *Parser) assignStmt(aStmt *ast.AssignStmt) error {
 	for !p.match(token.Assign) {
 		v := ast.VarRef{}
-		if err := p.lvalue(&v, t); err != nil {
+		if err := p.lvalue(&v); err != nil {
 			return err
 		}
 		aStmt.LValue = append(aStmt.LValue, v)
@@ -375,7 +375,7 @@ func (p *Parser) assignStmt(aStmt *ast.AssignStmt, t token.Token) error {
 	return nil
 }
 
-func (p *Parser) lvalue(v *ast.VarRef, t token.Token) error {
+func (p *Parser) lvalue(v *ast.VarRef) error {
 	if p.match(token.Ident) {
 		v.VarName = p.currToken
 		p.advance()
@@ -544,7 +544,7 @@ func (p *Parser) forStmt(fStmt *ast.ForStmt) error {
 	}
 
 	aStmt := &ast.AssignStmt{}
-	if err := p.assignStmt(aStmt, fStmt.VarDecl.VarDef.VarName); err != nil {
+	if err := p.assignStmt(aStmt); err != nil {
 		return err
 	}
 	fStmt.Assign = *aStmt

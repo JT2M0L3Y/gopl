@@ -3,6 +3,7 @@ package vm
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -16,6 +17,8 @@ type VM struct {
 	nextObjID  int
 	frameInfo  map[string]FrameInfo
 	callStack  *utils.Stack[*Frame]
+	input      io.Reader
+	output     io.Writer
 }
 
 func New() *VM {
@@ -25,6 +28,20 @@ func New() *VM {
 		nextObjID:  2023,
 		frameInfo:  map[string]FrameInfo{},
 		callStack:  utils.New[*Frame](),
+		input:      os.Stdin,
+		output:     os.Stdout,
+	}
+}
+
+func (vm *VM) SetInput(input io.Reader) {
+	if input != nil {
+		vm.input = input
+	}
+}
+
+func (vm *VM) SetOutput(output io.Writer) {
+	if output != nil {
+		vm.output = output
 	}
 }
 
@@ -59,7 +76,7 @@ func (vm *VM) Execute(debug bool) error {
 	if err := vm.callStack.Push(frame); err != nil {
 		return err
 	}
-	reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(vm.input)
 	for !vm.callStack.IsEmpty() {
 		if frame.ProgCount >= len(frame.Info.Instructions) {
 			vm.callStack.Pop()
@@ -304,7 +321,7 @@ func (vm *VM) executeInstr(frame **Frame, instr Instr, reader *bufio.Reader) err
 		if err != nil {
 			return err
 		}
-		fmt.Print(ValueString(v))
+		fmt.Fprint(vm.output, ValueString(v))
 	case READ:
 		s, err := reader.ReadString('\n')
 		if err != nil && len(s) == 0 {

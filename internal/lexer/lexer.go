@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"time"
 	"unicode"
 
 	"gopl/internal/token"
@@ -11,9 +12,10 @@ import (
 
 // Lexer converts input text into tokens.
 type Lexer struct {
-	r      *bufio.Reader
-	line   int
-	column int
+	r       *bufio.Reader
+	line    int
+	column  int
+	elapsed time.Duration
 }
 
 // New creates a lexer for the provided reader.
@@ -21,8 +23,18 @@ func New(reader io.Reader) *Lexer {
 	return &Lexer{r: bufio.NewReader(reader), line: 1, column: 0}
 }
 
+// Duration reports the time spent producing tokens so far.
+func (l *Lexer) Duration() time.Duration {
+	if l.elapsed != 0 {
+		return l.elapsed
+	}
+	return l.elapsed
+}
+
 // Next returns the next token from the input stream.
-func (l *Lexer) Next() token.Token {
+func (l *Lexer) Next() (result token.Token) {
+	started := time.Now()
+	defer func() { l.elapsed += time.Since(started) }()
 	l.skipWhitespaceAndComments()
 
 	startLine, startCol := l.line, l.column+1
