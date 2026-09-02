@@ -6,13 +6,22 @@ import (
 	"os"
 
 	"gopl/internal/pipeline"
+	"gopl/internal/version"
 )
 
 func main() {
+	versionFlag := flag.Bool("version", false, "print the GoPL version")
 	flag.Usage = func() {
 		writeStderr("usage: gopl <source-file>")
 	}
 	flag.Parse()
+	if *versionFlag {
+		if _, err := fmt.Fprintln(os.Stdout, version.String()); err != nil {
+			writeStderr(err.Error())
+			os.Exit(1)
+		}
+		return
+	}
 	if flag.NArg() != 1 {
 		flag.Usage()
 		os.Exit(1)
