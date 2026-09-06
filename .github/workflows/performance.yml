@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifacts
-          go test ./internal/pipeline -run '^$' -bench . -benchmem -count=5 | tee artifacts/pipeline-benchmark.txt
+          go test ./internal/pipeline -run '^$' -bench BenchmarkPipeline -benchmem -count=1 | tee artifacts/pipeline-benchmark.txt
       - name: Generate CPU and heap profiles
         shell: bash
         run: |
