@@ -5,7 +5,7 @@ on:
     types: [opened, synchronized, reopened]
 
 jobs:
-  verify:
+  integrate:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
