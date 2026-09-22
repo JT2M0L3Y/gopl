@@ -3,8 +3,9 @@
 mkdir -p dist
 
 version="${{ steps.version.outputs.version }}"
+distros=("linux amd64" "linux arm64" "darwin amd64" "darwin arm64" "windows amd64" "windows arm64")
 
-for target in "linux amd64" "linux arm64" "darwin amd64" "darwin arm64" "windows amd64"; do
+for target in "${distros[@]}"; do
   read -r goos goarch <<< "$target"
   suffix=""
 
