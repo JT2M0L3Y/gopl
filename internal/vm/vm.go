@@ -186,13 +186,21 @@ func (vm *VM) executeInstr(frame **Frame, instr Instr, reader *bufio.Reader) err
 		}
 		f.Variables[i] = v
 	case ADD:
-		return binary(f, func(y, x Value) (Value, error) { return arithmetic(y, x, '+') })
+		return binary(f, func(y, x Value) (Value, error) {
+			return arithmetic(y, x, '+')
+		})
 	case SUB:
-		return binary(f, func(y, x Value) (Value, error) { return arithmetic(y, x, '-') })
+		return binary(f, func(y, x Value) (Value, error) {
+			return arithmetic(y, x, '-')
+		})
 	case MUL:
-		return binary(f, func(y, x Value) (Value, error) { return arithmetic(y, x, '*') })
+		return binary(f, func(y, x Value) (Value, error) {
+			return arithmetic(y, x, '*')
+		})
 	case DIV:
-		return binary(f, func(y, x Value) (Value, error) { return arithmetic(y, x, '/') })
+		return binary(f, func(y, x Value) (Value, error) {
+			return arithmetic(y, x, '/')
+		})
 	case AND, OR:
 		return binary(f, func(y, x Value) (Value, error) {
 			a, e := boolValue(y)
@@ -392,7 +400,9 @@ func (vm *VM) executeInstr(frame **Frame, instr Instr, reader *bufio.Reader) err
 		}
 		push(f, ValueString(v))
 	case CONCAT:
-		return binary(f, func(y, x Value) (Value, error) { return fmt.Sprint(y) + fmt.Sprint(x), nil })
+		return binary(f, func(y, x Value) (Value, error) {
+			return fmt.Sprint(y) + fmt.Sprint(x), nil
+		})
 	case ALLOCS:
 		id := vm.nextObjID
 		vm.nextObjID++
