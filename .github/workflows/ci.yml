@@ -2,32 +2,33 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, synchronized]
-
-permissions:
-  contents: read
+    types: [opened, synchronized, reopened]
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
+
       - name: Check formatting
         shell: bash
         run: test -z "$(gofmt -l .)"
+
       - name: Vet
         run: go vet ./...
+
       - name: Test
         run: go test -count=1 ./...
+
       - name: Build
         run: go build ./...
+
       - name: Lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: latest
+        uses: golangci/golangci-lint-action@v8
