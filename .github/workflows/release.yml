@@ -34,9 +34,6 @@ jobs:
         id: version
         run: ./scripts/version.sh
 
-      - name: Verify source
-        uses: .github/workflows/ci.yml
-
       - name: Run benchmarks
         run: ./scripts/benchmark.sh
 
