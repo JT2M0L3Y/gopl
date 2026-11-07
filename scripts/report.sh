@@ -1,10 +1,12 @@
-version="${{ steps.version.outputs.version }}"
+#!/bin/bash
+set -euo pipefail
+
 {
   echo "# GoPL v${version}"
   echo
   echo "## Performance sign-off"
   echo
-  echo "These results were collected from merge commit ${{ github.event.pull_request.merge_commit_sha }} before publication. Review the benchmark and profile artifacts before approving the release."
+  echo "These results were collected from merge commit ${merge_sha} before publication. Review the benchmark and profile artifacts before approving the release."
   echo
   echo '```text'
   cat artifacts/benchmark.txt

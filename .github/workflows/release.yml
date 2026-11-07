@@ -38,12 +38,19 @@ jobs:
         run: ./scripts/benchmark.sh
 
       - name: Generate release profiles
+        env:
+          version: ${{ steps.version.outputs.version }}
         run: ./scripts/profile.sh
 
       - name: Build release binaries
+        env:
+          version: ${{ steps.version.outputs.version }}
         run: ./scripts/binary.sh
 
       - name: Create release report
+        env:
+          merge_sha: ${{ github.event.pull_request.merge_commit_sha }}
+          version: ${{ steps.version.outputs.version }}
         run: ./scripts/report.sh
 
       - name: Upload release candidate artifacts
@@ -74,6 +81,9 @@ jobs:
           path: release
 
       - name: Create version tag
+        env:
+          merge_sha: ${{ needs.performance.outputs.merge_sha }}
+          version: ${{ needs.performance.outputs.version}}
         run: ./scripts/tag.sh
 
       - name: Publish GitHub release
